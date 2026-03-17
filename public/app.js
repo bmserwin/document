@@ -213,29 +213,68 @@ function removeVar(id) {
 
 // Phase 3: Data Entry
 function buildDataGrid() {
-    const head = document.getElementById('table-head');
-    const body = document.getElementById('table-body');
-
-    let headHtml = '<th>#</th>';
-    variables.forEach(v => { headHtml += `<th>${v.name}</th>`; });
-    headHtml += '<th>File Name</th><th></th>';
-    head.innerHTML = headHtml;
-
     refreshTableBody();
 }
 
 function refreshTableBody() {
-    const body = document.getElementById('table-body');
-    body.innerHTML = rowData.map((row, idx) => `
-        <tr>
-            <td>${idx + 1}</td>
-            ${variables.map(v => `
-                <td><input type="text" value="${row[v.name] || ''}" oninput="updateRow(${idx}, '${v.name}', this.value)" placeholder="${v.name}..."></td>
-            `).join('')}
-            <td><input type="text" value="${row._fn || ''}" oninput="updateRow(${idx}, '_fn', this.value)" placeholder="output_name"></td>
-            <td><button class="btn-ghost" onclick="delRow(${idx})"><i data-lucide="x"></i></button></td>
-        </tr>
-    `).join('');
+    const container = document.getElementById('grid-container');
+    const isMobile = window.innerWidth <= 768;
+
+    if (!isMobile) {
+        // Desktop: Table View
+        container.innerHTML = `
+            <table id="data-table">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        ${variables.map(v => `<th>${v.name}</th>`).join('')}
+                        <th>File Name</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${rowData.map((row, idx) => `
+                        <tr>
+                            <td data-label="Row">${idx + 1}</td>
+                            ${variables.map(v => `
+                                <td data-label="${v.name}">
+                                    <input type="text" value="${row[v.name] || ''}" oninput="updateRow(${idx}, '${v.name}', this.value)" placeholder="${v.name}...">
+                                </td>
+                            `).join('')}
+                            <td data-label="File Name">
+                                <input type="text" value="${row._fn || ''}" oninput="updateRow(${idx}, '_fn', this.value)" placeholder="output_name">
+                            </td>
+                            <td>
+                                <button class="btn-ghost" onclick="delRow(${idx})"><i data-lucide="trash-2"></i></button>
+                            </td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `;
+    } else {
+        // Mobile: Card/Form View
+        container.innerHTML = rowData.map((row, idx) => `
+            <div class="entry-card">
+                <div class="card-header">
+                    <span>Entry #${idx + 1}</span>
+                    <button class="btn-ghost" onclick="delRow(${idx})"><i data-lucide="trash-2"></i></button>
+                </div>
+                <div class="card-body">
+                    ${variables.map(v => `
+                        <div class="form-group">
+                            <label>${v.name}</label>
+                            <input type="text" value="${row[v.name] || ''}" oninput="updateRow(${idx}, '${v.name}', this.value)" placeholder="Enter ${v.name}...">
+                        </div>
+                    `).join('')}
+                    <div class="form-group">
+                        <label>Output File Name</label>
+                        <input type="text" value="${row._fn || ''}" oninput="updateRow(${idx}, '_fn', this.value)" placeholder="e.g. Assignment_1">
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
     lucide.createIcons();
 }
 

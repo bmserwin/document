@@ -602,18 +602,61 @@ input[type="text"]:focus {
         font-size: 1.1rem;
     }
 
-    /* Phase 3: Data Grid */
-    .grid-container {
-        margin: 0 -15px;
-        border-radius: 0;
-        border-left: none;
-        border-right: none;
-        max-height: 400px;
-        overflow-x: auto;
+    /* Phase 3: Card / Form Entry */
+    #grid-container {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
     }
 
-    table {
-        min-width: 600px;
+    .entry-card {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid var(--card-border);
+        border-radius: 16px;
+        overflow: hidden;
+    }
+
+    .card-header {
+        background: rgba(255, 255, 255, 0.05);
+        padding: 12px 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid var(--card-border);
+        font-weight: 700;
+        font-size: 0.9rem;
+    }
+
+    .card-body {
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .form-group label {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .form-group input {
+        width: 100%;
+        background: rgba(255, 255, 255, 0.05) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        border-radius: 12px !important;
+        padding: 12px 16px !important;
+        color: var(--text);
+        font-size: 16px !important;
+        /* Prevent iOS zoom */
     }
 
     /* Phase 1 Adjustments */
@@ -624,6 +667,13 @@ input[type="text"]:focus {
     .upload-icon {
         width: 40px;
         height: 40px;
+    }
+
+    /* Phase 4 Polish */
+    #p4 .btn-primary {
+        width: 100%;
+        max-width: 320px;
+        margin: 0 auto;
     }
 
     /* Modal Tweaks */

@@ -56,13 +56,19 @@ async function renderDocPreview() {
 }
 
 // Phase 2: Selection
-docPreview.onmouseup = () => {
+function handleSelection() {
     const selection = window.getSelection();
     const text = selection.toString().trim();
     if (text.length > 0) {
         document.getElementById('selected-text-preview').textContent = `"${text}"`;
         showModal(text);
     }
+}
+
+docPreview.onmouseup = handleSelection;
+docPreview.ontouchend = () => {
+    // On mobile, selection updates slightly after touchend
+    setTimeout(handleSelection, 100);
 };
 
 function showModal(text) {

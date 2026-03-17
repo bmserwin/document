@@ -57,6 +57,7 @@ h1 {
     letter-spacing: -0.05em;
     background: linear-gradient(135deg, #a78bfa 0%, #d946ef 100%);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
     margin-bottom: 8px;
 }
@@ -211,6 +212,23 @@ h1 {
     border-bottom: 2px solid #eab308;
     color: black;
     cursor: default;
+}
+
+.document-canvas img {
+    max-width: 100%;
+    height: auto;
+}
+
+.document-canvas table {
+    width: 100% !important;
+    border-collapse: collapse;
+    margin-bottom: 1em;
+}
+
+.document-canvas table td,
+.document-canvas table th {
+    border: 1px solid #ddd;
+    padding: 8px;
 }
 
 .sidebar {
@@ -407,5 +425,116 @@ input[type="text"]:focus {
 @keyframes spin {
     to {
         transform: rotate(360deg);
+    }
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+    body {
+        padding: 10px;
+    }
+
+    .app-shell {
+        padding: 24px 16px;
+        border-radius: 20px;
+    }
+
+    h1 {
+        font-size: 2.2rem;
+    }
+
+    .subtitle {
+        font-size: 0.95rem;
+    }
+
+    .stepper {
+        margin-bottom: 32px;
+        gap: 8px;
+        overflow-x: auto;
+        padding-bottom: 10px;
+        justify-content: flex-start;
+    }
+
+    .stepper::before {
+        display: none;
+    }
+
+    .step {
+        flex-shrink: 0;
+    }
+
+    .step-circle {
+        width: 32px;
+        height: 32px;
+        font-size: 0.9rem;
+    }
+
+    .step-label {
+        font-size: 0.65rem;
+    }
+
+    .editor-container {
+        grid-template-columns: 1fr;
+        height: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .document-canvas {
+        height: 450px;
+        padding: 20px;
+        font-size: 1rem;
+    }
+
+    .sidebar {
+        height: auto;
+        max-height: 400px;
+    }
+
+    .actions-footer {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .actions-footer .btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .drop-zone {
+        padding: 40px 20px;
+    }
+
+    .upload-icon {
+        width: 48px;
+        height: 48px;
+    }
+
+    #var-modal {
+        width: 90%;
+        max-width: 320px;
+    }
+
+    .grid-container {
+        margin: 0 -16px;
+        border-radius: 0;
+        border-left: none;
+        border-right: none;
+    }
+
+    table {
+        font-size: 0.9rem;
+    }
+
+    input[type="text"] {
+        padding: 8px 10px;
+    }
+}
+
+/* Landscape and Tablets */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .editor-container {
+        grid-template-columns: 1fr 280px;
     }
 }

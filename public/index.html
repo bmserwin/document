@@ -15,9 +15,10 @@
 
 <body>
 
-    <!-- Floating Selection Button for Mobile -->
-    <div id="selection-action-btn" class="selection-fab">
-        <i data-lucide="plus"></i> Add Variable
+    <!-- Static Selection Bar for Mobile -->
+    <div id="selection-bar" class="selection-bar">
+        <span id="selection-text-info">Selected: "..."</span>
+        <button class="btn btn-primary" onclick="triggerVarModal()"><i data-lucide="plus"></i> Add Variable</button>
     </div>
 
     <div class="app-shell">
@@ -70,75 +71,81 @@
                 <div class="document-canvas" id="doc-preview">
                     <!-- Preview will load here -->
                 </div>
-                <div class="sidebar">
+                <div
+                    style="display: flex; gap: 8px; align-items: center; justify-content: space-between; margin-bottom: 12px;">
                     <h3>Variables</h3>
-                    <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 20px;">
-                        Highlight text in the document (left) to mark it as a variable.
-                    </p>
-                    <div class="variables-list" id="vars-list">
-                        <!-- List of variables -->
-                        <div
-                            style="text-align: center; padding: 40px 10px; color: var(--text-muted); font-style: italic; border: 1px dashed rgba(255,255,255,0.05); border-radius: 12px;">
-                            No variables yet. Highlight some text!
-                        </div>
+                    <button class="btn-ghost" onclick="scanForMarkers()" title="Auto-detect {{variables}}"
+                        style="font-size: 0.75rem; padding: 4px 8px;">
+                        <i data-lucide="search" style="width:14px"></i> Auto-Scan
+                    </button>
+                </div>
+                <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 20px;">
+                    Highlight text or use <strong>{{brackets}}</strong> in your doc.
+                </p>
+                <div class="variables-list" id="vars-list">
+                    <!-- List of variables -->
+                    <div
+                        style="text-align: center; padding: 40px 10px; color: var(--text-muted); font-style: italic; border: 1px dashed rgba(255,255,255,0.05); border-radius: 12px;">
+                        No variables yet. Highlight some text!
                     </div>
                 </div>
             </div>
-            <div class="actions-footer">
-                <button class="btn btn-outline" onclick="go(1)"><i data-lucide="arrow-left"></i> Back</button>
-                <button class="btn btn-primary" onclick="proceedToData()"><i data-lucide="table-2"></i> Continue to
-                    Form</button>
+        </div>
+        <div class="actions-footer">
+            <button class="btn btn-outline" onclick="go(1)"><i data-lucide="arrow-left"></i> Back</button>
+            <button class="btn btn-primary" onclick="proceedToData()"><i data-lucide="table-2"></i> Continue to
+                Form</button>
+        </div>
+    </div>
+
+    <!-- Phase 3: Data Grid -->
+    <div id="p3" class="phase">
+        <div class="grid-container">
+            <table id="data-table">
+                <thead>
+                    <tr id="table-head">
+                        <!-- Headers dynamically added -->
+                    </tr>
+                </thead>
+                <tbody id="table-body">
+                    <!-- Rows dynamically added -->
+                </tbody>
+            </table>
+        </div>
+        <div style="margin-top: 20px;">
+            <button class="btn btn-outline" onclick="addRow()">
+                <i data-lucide="plus"></i> Add Another Row
+            </button>
+        </div>
+        <div class="actions-footer">
+            <button class="btn btn-outline" onclick="go(2)"><i data-lucide="arrow-left"></i> Back</button>
+            <button class="btn btn-primary" id="generate-btn" onclick="runGeneration()">
+                <div class="loader" id="gen-loader"></div>
+                <span id="gen-text"><i data-lucide="zap"></i> Generate ZIP</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Phase 4: Success -->
+    <div id="p4" class="phase">
+        <div style="text-align: center; padding: 60px 0;">
+            <div
+                style="width: 80px; height: 80px; background: var(--success); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 32px; font-size: 40px; box-shadow: 0 0 30px rgba(16, 185, 129, 0.4);">
+                <i data-lucide="check"></i>
+            </div>
+            <h2 style="font-size: 2rem; margin-bottom: 12px;">Files Created!</h2>
+            <p style="color: var(--text-muted); margin-bottom: 40px;">Your assignments have been customized and
+                bundled into a ZIP file.</p>
+
+            <button class="btn btn-primary" id="final-download-btn" style="padding: 16px 40px;">
+                <i data-lucide="download"></i> Download ZIP Now
+            </button>
+
+            <div style="margin-top: 32px;">
+                <button class="btn btn-ghost" onclick="location.reload()">Start New Session</button>
             </div>
         </div>
-
-        <!-- Phase 3: Data Grid -->
-        <div id="p3" class="phase">
-            <div class="grid-container">
-                <table id="data-table">
-                    <thead>
-                        <tr id="table-head">
-                            <!-- Headers dynamically added -->
-                        </tr>
-                    </thead>
-                    <tbody id="table-body">
-                        <!-- Rows dynamically added -->
-                    </tbody>
-                </table>
-            </div>
-            <div style="margin-top: 20px;">
-                <button class="btn btn-outline" onclick="addRow()">
-                    <i data-lucide="plus"></i> Add Another Row
-                </button>
-            </div>
-            <div class="actions-footer">
-                <button class="btn btn-outline" onclick="go(2)"><i data-lucide="arrow-left"></i> Back</button>
-                <button class="btn btn-primary" id="generate-btn" onclick="runGeneration()">
-                    <div class="loader" id="gen-loader"></div>
-                    <span id="gen-text"><i data-lucide="zap"></i> Generate ZIP</span>
-                </button>
-            </div>
-        </div>
-
-        <!-- Phase 4: Success -->
-        <div id="p4" class="phase">
-            <div style="text-align: center; padding: 60px 0;">
-                <div
-                    style="width: 80px; height: 80px; background: var(--success); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 32px; font-size: 40px; box-shadow: 0 0 30px rgba(16, 185, 129, 0.4);">
-                    <i data-lucide="check"></i>
-                </div>
-                <h2 style="font-size: 2rem; margin-bottom: 12px;">Files Created!</h2>
-                <p style="color: var(--text-muted); margin-bottom: 40px;">Your assignments have been customized and
-                    bundled into a ZIP file.</p>
-
-                <button class="btn btn-primary" id="final-download-btn" style="padding: 16px 40px;">
-                    <i data-lucide="download"></i> Download ZIP Now
-                </button>
-
-                <div style="margin-top: 32px;">
-                    <button class="btn btn-ghost" onclick="location.reload()">Start New Session</button>
-                </div>
-            </div>
-        </div>
+    </div>
     </div>
 
     <!-- Modals -->

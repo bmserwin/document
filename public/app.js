@@ -57,7 +57,8 @@ async function renderDocPreview() {
 
 // Phase 2: Selection
 let selectionTimeout;
-const selectionFab = document.getElementById('selection-action-btn');
+const selectionBar = document.getElementById('selection-bar');
+const selectionInfo = document.getElementById('selection-text-info');
 let lastSelectedText = "";
 
 function handleSelection() {
@@ -70,41 +71,57 @@ function handleSelection() {
         const isMobile = window.innerWidth <= 768;
 
         if (isMobile) {
-            showSelectionFab(selection);
+            selectionInfo.textContent = `"${text.substring(0, 15)}${text.length > 15 ? '...' : ''}"`;
+            selectionBar.style.display = 'flex';
         } else {
             document.getElementById('selected-text-preview').textContent = `"${text}"`;
             showModal(text);
         }
     } else {
-        hideSelectionFab();
+        selectionBar.style.display = 'none';
     }
 }
 
-function showSelectionFab(selection) {
-    if (!selection.rangeCount) return;
-    const range = selection.getRangeAt(0);
-    const rect = range.getBoundingClientRect();
-
-    selectionFab.style.display = 'flex';
-
-    // Position FAB above selection
-    const top = rect.top + window.scrollY - 50;
-    const left = rect.left + window.scrollX + (rect.width / 2);
-
-    selectionFab.style.top = `${top < 10 ? rect.bottom + window.scrollY + 10 : top}px`;
-    selectionFab.style.left = `${left}px`;
-    selectionFab.style.transform = 'translateX(-50%)';
-}
-
-function hideSelectionFab() {
-    selectionFab.style.display = 'none';
-}
-
-selectionFab.onclick = () => {
+// Explicit trigger from Selection Bar
+function triggerVarModal() {
     document.getElementById('selected-text-preview').textContent = `"${lastSelectedText}"`;
     showModal(lastSelectedText);
-    hideSelectionFab();
-};
+    selectionBar.style.display = 'none';
+}
+
+/**
+ * AUTO-SCAN METHOD:
+ * Automatically finds markers like {{variable}} or $$variable$$ in the document text
+ * This is the easiest method for mobile users.
+ */
+function scanForMarkers() {
+    const text = docPreview.innerText;
+    // Regex matches {{name}} or $$name$$
+    const markers = text.match(/\{\{([^}]+)\}\}|\$\$([^$]+)\$\$/g);
+
+    if (!markers) {
+        alert("No markers like {{name}} or $$name$$ found in the document.");
+        return;
+    }
+
+    let foundAny = false;
+    markers.forEach(m => {
+        // Extract name and clean up
+        const name = m.replace(/\{\{|\}\}|\$\$/g, '').trim().replace(/\s+/g, '_');
+        if (!variables.find(v => v.name === name)) {
+            variables.push({ id: Date.now() + Math.random(), name, originalText: m });
+            highlightPreview(m, name);
+            foundAny = true;
+        }
+    });
+
+    if (foundAny) {
+        updateVarsSidebar();
+        alert(`Successfully found and added ${markers.length} variables!`);
+    } else {
+        alert("All markers found are already added to your list.");
+    }
+}
 
 // Global selection change handling
 document.onselectionchange = () => {
@@ -113,7 +130,7 @@ document.onselectionchange = () => {
         selectionTimeout = setTimeout(() => {
             const selection = window.getSelection();
             if (selection.toString().trim().length === 0) {
-                hideSelectionFab();
+                selectionBar.style.display = 'none';
             } else if (window.innerWidth <= 768) {
                 handleSelection();
             }
@@ -125,11 +142,11 @@ docPreview.onmouseup = () => {
     if (window.innerWidth > 768) handleSelection();
 };
 
-// Touch handling for mobile
+// Also trigger on touch end for mobile to catch selection adjustments
 docPreview.ontouchend = () => {
     if (window.innerWidth <= 768) {
         clearTimeout(selectionTimeout);
-        selectionTimeout = setTimeout(handleSelection, 300);
+        selectionTimeout = setTimeout(handleSelection, 200);
     }
 };
 

@@ -431,104 +431,160 @@ input[type="text"]:focus {
 /* Mobile Responsiveness */
 @media (max-width: 768px) {
     body {
-        padding: 10px;
+        padding: 5px;
+        background-attachment: scroll;
     }
 
     .app-shell {
-        padding: 24px 16px;
-        border-radius: 20px;
+        padding: 20px 15px;
+        border-radius: 16px;
+        box-shadow: none;
+        border: none;
     }
 
     h1 {
-        font-size: 2.2rem;
+        font-size: 2rem;
     }
 
     .subtitle {
-        font-size: 0.95rem;
+        font-size: 0.9rem;
     }
 
+    /* Better Stepper for Mobile */
     .stepper {
-        margin-bottom: 32px;
-        gap: 8px;
-        overflow-x: auto;
-        padding-bottom: 10px;
-        justify-content: flex-start;
+        margin-bottom: 24px;
+        gap: 4px;
+        padding: 10px 0;
+        justify-content: center;
     }
 
     .stepper::before {
         display: none;
     }
 
-    .step {
-        flex-shrink: 0;
-    }
-
     .step-circle {
-        width: 32px;
-        height: 32px;
-        font-size: 0.9rem;
+        width: 28px;
+        height: 28px;
+        font-size: 0.8rem;
     }
 
     .step-label {
-        font-size: 0.65rem;
+        font-size: 0.6rem;
+        display: none;
     }
 
+    .step.active .step-label {
+        display: block;
+        margin-top: 4px;
+    }
+
+    /* Phase 2: PDF Section FIRST, then Variables, then Footer */
     .editor-container {
-        grid-template-columns: 1fr;
-        height: auto;
         display: flex;
         flex-direction: column;
-        gap: 20px;
+        height: auto;
+        gap: 24px;
     }
 
     .document-canvas {
+        order: 1;
+        /* PDF Viewer FIRST */
         height: 450px;
         padding: 20px;
-        font-size: 1rem;
+        font-size: 0.95rem;
+        border: 1px solid rgba(0, 0, 0, 0.1);
+        border-radius: 8px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        background: #fdfdfd;
+        color: #1a1a1a;
+        touch-action: pan-y;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Icon Scale */
+    svg[data-lucide] {
+        width: 18px !important;
+        height: 18px !important;
     }
 
     .sidebar {
+        order: 2;
+        /* Variables NEXT */
+        padding: 16px;
+        background: rgba(255, 255, 255, 0.04);
+        max-height: 500px;
         height: auto;
-        max-height: 400px;
+    }
+
+    .sidebar h3 {
+        font-size: 1.1rem;
+        margin-bottom: 8px;
+    }
+
+    .variables-list {
+        max-height: 300px;
+    }
+
+    .variable-item {
+        padding: 10px 12px;
     }
 
     .actions-footer {
+        order: 3;
+        /* Buttons LAST */
         flex-direction: column;
+        /* Normal order: Secondary then Primary */
         gap: 12px;
+        margin-top: 24px;
     }
 
     .actions-footer .btn {
         width: 100%;
+        padding: 16px;
         justify-content: center;
     }
 
-    .drop-zone {
-        padding: 40px 20px;
+    /* Ensure Continue button is easy to see on mobile */
+    .actions-footer .btn-primary {
+        order: -1;
+        /* Move 'Continue' button to top in mobile stack if needed */
+        font-size: 1.1rem;
     }
 
-    .upload-icon {
-        width: 48px;
-        height: 48px;
-    }
-
-    #var-modal {
-        width: 90%;
-        max-width: 320px;
-    }
-
+    /* Phase 3: Data Grid */
     .grid-container {
-        margin: 0 -16px;
+        margin: 0 -15px;
         border-radius: 0;
         border-left: none;
         border-right: none;
+        max-height: 400px;
+        overflow-x: auto;
     }
 
     table {
-        font-size: 0.9rem;
+        min-width: 600px;
     }
 
-    input[type="text"] {
-        padding: 8px 10px;
+    /* Phase 1 Adjustments */
+    .drop-zone {
+        padding: 40px 15px;
+    }
+
+    .upload-icon {
+        width: 40px;
+        height: 40px;
+    }
+
+    /* Modal Tweaks */
+    #var-modal {
+        position: fixed;
+        top: 25%;
+        /* Higher on screen for keyboard */
+        left: 50%;
+        transform: translate(-50%, 0);
+        width: calc(100% - 32px);
+        margin: 0;
+        padding: 20px;
     }
 }
 

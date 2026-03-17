@@ -56,19 +56,39 @@ async function renderDocPreview() {
 }
 
 // Phase 2: Selection
+let selectionTimeout;
+
 function handleSelection() {
     const selection = window.getSelection();
     const text = selection.toString().trim();
-    if (text.length > 0) {
+
+    // Check if selection is inside docPreview
+    if (text.length > 0 && docPreview.contains(selection.anchorNode)) {
         document.getElementById('selected-text-preview').textContent = `"${text}"`;
         showModal(text);
     }
 }
 
+// Global selection change is often the most reliable on mobile
+document.onselectionchange = () => {
+    if (document.getElementById('p2').classList.contains('active')) {
+        clearTimeout(selectionTimeout);
+        selectionTimeout = setTimeout(() => {
+            const selection = window.getSelection();
+            if (selection.toString().trim().length > 0) {
+                // We don't auto-show on every tiny movement on mobile
+                // If it's desktop (mouseup) or a stabilized selection on mobile
+            }
+        }, 500);
+    }
+};
+
 docPreview.onmouseup = handleSelection;
+
+// Specific handle for mobile to trigger AFTER the user is done adjusting handles
 docPreview.ontouchend = () => {
-    // On mobile, selection updates slightly after touchend
-    setTimeout(handleSelection, 100);
+    clearTimeout(selectionTimeout);
+    selectionTimeout = setTimeout(handleSelection, 300);
 };
 
 function showModal(text) {

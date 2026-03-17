@@ -57,6 +57,8 @@ async function renderDocPreview() {
 
 // Phase 2: Selection
 let selectionTimeout;
+const selectionFab = document.getElementById('selection-action-btn');
+let lastSelectedText = "";
 
 function handleSelection() {
     const selection = window.getSelection();
@@ -64,31 +66,71 @@ function handleSelection() {
 
     // Check if selection is inside docPreview
     if (text.length > 0 && docPreview.contains(selection.anchorNode)) {
-        document.getElementById('selected-text-preview').textContent = `"${text}"`;
-        showModal(text);
+        lastSelectedText = text;
+        const isMobile = window.innerWidth <= 768;
+
+        if (isMobile) {
+            showSelectionFab(selection);
+        } else {
+            document.getElementById('selected-text-preview').textContent = `"${text}"`;
+            showModal(text);
+        }
+    } else {
+        hideSelectionFab();
     }
 }
 
-// Global selection change is often the most reliable on mobile
+function showSelectionFab(selection) {
+    if (!selection.rangeCount) return;
+    const range = selection.getRangeAt(0);
+    const rect = range.getBoundingClientRect();
+
+    selectionFab.style.display = 'flex';
+
+    // Position FAB above selection
+    const top = rect.top + window.scrollY - 50;
+    const left = rect.left + window.scrollX + (rect.width / 2);
+
+    selectionFab.style.top = `${top < 10 ? rect.bottom + window.scrollY + 10 : top}px`;
+    selectionFab.style.left = `${left}px`;
+    selectionFab.style.transform = 'translateX(-50%)';
+}
+
+function hideSelectionFab() {
+    selectionFab.style.display = 'none';
+}
+
+selectionFab.onclick = () => {
+    document.getElementById('selected-text-preview').textContent = `"${lastSelectedText}"`;
+    showModal(lastSelectedText);
+    hideSelectionFab();
+};
+
+// Global selection change handling
 document.onselectionchange = () => {
     if (document.getElementById('p2').classList.contains('active')) {
         clearTimeout(selectionTimeout);
         selectionTimeout = setTimeout(() => {
             const selection = window.getSelection();
-            if (selection.toString().trim().length > 0) {
-                // We don't auto-show on every tiny movement on mobile
-                // If it's desktop (mouseup) or a stabilized selection on mobile
+            if (selection.toString().trim().length === 0) {
+                hideSelectionFab();
+            } else if (window.innerWidth <= 768) {
+                handleSelection();
             }
-        }, 500);
+        }, 400);
     }
 };
 
-docPreview.onmouseup = handleSelection;
+docPreview.onmouseup = () => {
+    if (window.innerWidth > 768) handleSelection();
+};
 
-// Specific handle for mobile to trigger AFTER the user is done adjusting handles
+// Touch handling for mobile
 docPreview.ontouchend = () => {
-    clearTimeout(selectionTimeout);
-    selectionTimeout = setTimeout(handleSelection, 300);
+    if (window.innerWidth <= 768) {
+        clearTimeout(selectionTimeout);
+        selectionTimeout = setTimeout(handleSelection, 300);
+    }
 };
 
 function showModal(text) {

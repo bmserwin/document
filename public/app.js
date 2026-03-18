@@ -2,6 +2,7 @@ let fileBuffer = null;
 let variables = []; // { id, name, originalText }
 let rowData = [{}]; // Data for each student
 let lastGeneratedZipBlob = null;
+let lastGeneratedDocs = []; // Array of { name, buffer }
 
 // Selectors
 const dropZone = document.getElementById('drop-zone');
@@ -408,6 +409,7 @@ async function runGeneration() {
     btn.disabled = true;
     loader.style.display = 'block';
     text.textContent = 'Generating...';
+    lastGeneratedDocs = []; // Reset docs array
 
     try {
         const zip = new JSZip();
@@ -472,6 +474,7 @@ async function runGeneration() {
 
             const fileName = (rawData._fn || `Assignment_${i + 1}`).replace(/\.[^/.]+$/, "") + ".docx";
             zip.file(fileName, out);
+            lastGeneratedDocs.push({ name: fileName, buffer: out });
         }
 
         const zipBlob = await zip.generateAsync({ type: "blob", mimeType: "application/zip" });
@@ -523,28 +526,64 @@ async function runGeneration() {
 async function shareOnWhatsApp() {
     if (!lastGeneratedZipBlob) return;
 
-    // Convert Blob to File object (required for navigator.share files array)
-    // We name it .zip so WhatsApp and other apps recognize it as a document
-    const file = new File([lastGeneratedZipBlob], "Assignments_Bundle.zip", {
-        type: "application/zip"
-    });
+    // 1. Check for Secure Context (HTTPS requirement for Web Share API)
+    if (!window.isSecureContext && window.location.hostname !== 'localhost') {
+        alert("🔒 Security Requirement: Mobile file sharing requires a secure connection (HTTPS). \n\nPlease use an HTTPS URL or download the file manually.");
+        return;
+    }
 
-    // Final safety check for sharing capability
-    if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        try {
+    try {
+        // Prepare the file object immediately to maintain user activation context
+        const file = new File([lastGeneratedZipBlob], "Assignments.zip", {
+            type: "application/zip"
+        });
+
+        // 2. Verify browser capability for this specific file
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
             await navigator.share({
                 files: [file],
-                title: "Custom Assignments",
-                text: "Check out these customized documents I generated via DocMorph!"
+                title: "DocMorph Assignments",
+                text: "Check out these customized documents!"
             });
-        } catch (err) {
-            // AbortError happens when user cancels the share sheet, ignore it
-            if (err.name !== 'AbortError') {
-                console.error("Share failed", err);
-                alert("Sharing failed: " + err.message);
-            }
+        } else {
+            alert("Format Not Supported: This browser doesn't permit sharing ZIP files directly. Please use the 'Download' button.");
         }
-    } else {
-        alert("File sharing is not supported on this device/browser.");
+    } catch (err) {
+        if (err.name === 'NotAllowedError') {
+            alert("Permission Denied: The browser blocked the share request. This usually happens if the site isn't using HTTPS or the gesture expired.");
+        } else if (err.name !== 'AbortError') {
+            console.error("Share failed", err);
+            alert("Sharing Error: " + err.message);
+        }
+    }
+}
+
+/**
+ * Downloads all generated documents in a specific format.
+ * Since direct DOCX->PDF in browser is limited, PDF results in an alert explanation 
+ * unless a heavy library is added. For now, we handle DOCX bulk download.
+ */
+function downloadAllFormats(format) {
+    if (lastGeneratedDocs.length === 0) return alert("Generate files first!");
+
+    if (format === 'pdf') {
+        alert("PDF Conversion Note: Converting DOCX to PDF directly in the browser requires a heavy server-side engine or licensed SDK. \n\nFor now, please download as DOCX and 'Save as PDF' from Word, or use an online converter. \n\nDirect PDF download is coming soon!");
+        return;
+    }
+
+    if (format === 'docx') {
+        // If there's only one doc, download it directly.
+        // If multiple, it's already in the ZIP, but we can trigger them or suggest ZIP.
+        if (lastGeneratedDocs.length === 1) {
+            const doc = lastGeneratedDocs[0];
+            const blob = new Blob([doc.buffer], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = doc.name;
+            a.click();
+        } else {
+            alert("Multiple files found. The ZIP download is the best way to get all your DOCX files at once!");
+        }
     }
 }

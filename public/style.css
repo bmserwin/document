@@ -278,11 +278,13 @@ h1 {
     display: block;
     font-size: 0.75rem;
     color: var(--text-muted);
+    word-break: break-all;
 }
 
 .variable-name {
     font-weight: 700;
     color: var(--primary);
+    word-break: break-all;
 }
 
 /* Phase 3: Grid */
@@ -363,6 +365,19 @@ input[type="text"]:focus {
 
 .btn-outline:hover {
     background: rgba(255, 255, 255, 0.05);
+}
+
+.btn-whatsapp {
+    background: #25D366;
+    color: white;
+    box-shadow: 0 10px 20px -5px rgba(37, 211, 102, 0.4);
+    border: none;
+}
+
+.btn-whatsapp:hover {
+    background: #128C7E;
+    transform: translateY(-2px);
+    box-shadow: 0 15px 30px -5px rgba(37, 211, 102, 0.4);
 }
 
 .btn-ghost {
@@ -488,9 +503,9 @@ input[type="text"]:focus {
 
     .app-shell {
         padding: 20px 15px;
-        border-radius: 16px;
-        box-shadow: none;
-        border: none;
+        border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+        border: 1px solid var(--card-border);
     }
 
     h1 {
@@ -646,6 +661,8 @@ input[type="text"]:focus {
         font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.05em;
+        word-break: break-word;
+        overflow-wrap: break-word;
     }
 
     .form-group input {
@@ -669,11 +686,27 @@ input[type="text"]:focus {
         height: 40px;
     }
 
-    /* Phase 4 Polish */
+    /* Phase 4 Success Polish */
     #p4 .btn-primary {
         width: 100%;
         max-width: 320px;
         margin: 0 auto;
+    }
+
+    #p4 h2 {
+        font-size: 1.6rem !important;
+    }
+
+    #p4 p {
+        font-size: 0.9rem !important;
+        overflow-wrap: break-word;
+    }
+
+    #p4 div[style*="width: 80px"] {
+        width: 60px !important;
+        height: 60px !important;
+        font-size: 30px !important;
+        margin-bottom: 20px !important;
     }
 
     /* Modal Tweaks */

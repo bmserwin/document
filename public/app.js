@@ -1,6 +1,7 @@
 let fileBuffer = null;
 let variables = []; // { id, name, originalText }
 let rowData = [{}]; // Data for each student
+let lastGeneratedZipBlob = null;
 
 // Selectors
 const dropZone = document.getElementById('drop-zone');
@@ -474,6 +475,22 @@ async function runGeneration() {
         }
 
         const zipBlob = await zip.generateAsync({ type: "blob", mimeType: "application/zip" });
+        lastGeneratedZipBlob = zipBlob;
+
+        // Check for Web Share (File) Support - mainly for mobile
+        const shareSection = document.getElementById('mobile-share-section');
+        const shareBtn = document.getElementById('share-btn');
+        const isMobile = window.innerWidth <= 768;
+
+        if (isMobile && navigator.canShare && navigator.share) {
+            const testFile = new File([zipBlob], "test.zip", { type: zipBlob.type });
+            if (navigator.canShare({ files: [testFile] })) {
+                shareSection.style.display = 'block';
+                shareBtn.onclick = shareOnWhatsApp;
+            }
+        } else {
+            shareSection.style.display = 'none';
+        }
 
         function triggerDownload() {
             const url = URL.createObjectURL(zipBlob);
@@ -500,5 +517,34 @@ async function runGeneration() {
         loader.style.display = 'none';
         text.innerHTML = '<i data-lucide="zap"></i> Generate ZIP';
         lucide.createIcons();
+    }
+}
+
+async function shareOnWhatsApp() {
+    if (!lastGeneratedZipBlob) return;
+
+    // Convert Blob to File object (required for navigator.share files array)
+    // We name it .zip so WhatsApp and other apps recognize it as a document
+    const file = new File([lastGeneratedZipBlob], "Assignments_Bundle.zip", {
+        type: "application/zip"
+    });
+
+    // Final safety check for sharing capability
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+            await navigator.share({
+                files: [file],
+                title: "Custom Assignments",
+                text: "Check out these customized documents I generated via DocMorph!"
+            });
+        } catch (err) {
+            // AbortError happens when user cancels the share sheet, ignore it
+            if (err.name !== 'AbortError') {
+                console.error("Share failed", err);
+                alert("Sharing failed: " + err.message);
+            }
+        }
+    } else {
+        alert("File sharing is not supported on this device/browser.");
     }
 }

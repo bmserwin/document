@@ -380,6 +380,18 @@ input[type="text"]:focus {
     box-shadow: 0 15px 30px -5px rgba(37, 211, 102, 0.4);
 }
 
+.btn-share {
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    color: white;
+    box-shadow: 0 10px 20px -5px rgba(59, 130, 246, 0.4);
+    border: none;
+}
+
+.btn-share:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 15px 30px -5px rgba(59, 130, 246, 0.5);
+}
+
 .btn-ghost {
     background: transparent;
     color: var(--text-muted);

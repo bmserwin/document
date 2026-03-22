@@ -3,6 +3,7 @@ let variables = []; // { id, name, originalText }
 let rowData = [{}]; // Data for each student
 let lastGeneratedZipBlob = null;
 let lastGeneratedDocs = []; // Array of { name, buffer }
+let lastGeneratedFile = null; // Pre-calculated File object for sharing
 
 // Selectors
 const dropZone = document.getElementById('drop-zone');
@@ -216,6 +217,21 @@ function removeVar(id) {
 // Phase 3: Data Entry
 function buildDataGrid() {
     refreshTableBody();
+    setupGridDelegation();
+}
+
+// Use event delegation so inputs don't cause full re-render
+function setupGridDelegation() {
+    const container = document.getElementById('grid-container');
+    container.addEventListener('input', (e) => {
+        const input = e.target;
+        if (input.tagName !== 'INPUT') return;
+        const idx = parseInt(input.dataset.rowIdx);
+        const key = input.dataset.key;
+        if (!isNaN(idx) && key) {
+            rowData[idx][key] = input.value;
+        }
+    });
 }
 
 function refreshTableBody() {
@@ -223,15 +239,15 @@ function refreshTableBody() {
     const isMobile = window.innerWidth <= 768;
 
     if (!isMobile) {
-        // Desktop: Table View
+        // Desktop: Table View — inputs use data attributes, NO oninput re-render
         container.innerHTML = `
             <table id="data-table">
                 <thead>
                     <tr>
-                        <th>#</th>
-                        ${variables.map(v => `<th>${v.name}</th>`).join('')}
-                        <th>File Name</th>
-                        <th></th>
+                        <th style="min-width:40px;">#</th>
+                        ${variables.map(v => `<th style="min-width:160px;">${v.name}</th>`).join('')}
+                        <th style="min-width:160px;">File Name</th>
+                        <th style="min-width:48px;"></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -240,11 +256,19 @@ function refreshTableBody() {
                             <td data-label="Row">${idx + 1}</td>
                             ${variables.map(v => `
                                 <td data-label="${v.name}">
-                                    <input type="text" value="${row[v.name] || ''}" oninput="updateRow(${idx}, '${v.name}', this.value)" placeholder="${v.name}...">
+                                    <input type="text"
+                                        data-row-idx="${idx}"
+                                        data-key="${v.name}"
+                                        value="${escHtml(row[v.name] || '')}"
+                                        placeholder="${escHtml(v.name)}...">
                                 </td>
                             `).join('')}
                             <td data-label="File Name">
-                                <input type="text" value="${row._fn || ''}" oninput="updateRow(${idx}, '_fn', this.value)" placeholder="output_name">
+                                <input type="text"
+                                    data-row-idx="${idx}"
+                                    data-key="_fn"
+                                    value="${escHtml(row._fn || '')}"
+                                    placeholder="output_name">
                             </td>
                             <td>
                                 <button class="btn-ghost" onclick="delRow(${idx})"><i data-lucide="trash-2"></i></button>
@@ -265,13 +289,21 @@ function refreshTableBody() {
                 <div class="card-body">
                     ${variables.map(v => `
                         <div class="form-group">
-                            <label>${v.name}</label>
-                            <input type="text" value="${row[v.name] || ''}" oninput="updateRow(${idx}, '${v.name}', this.value)" placeholder="Enter ${v.name}...">
+                            <label>${escHtml(v.name)}</label>
+                            <input type="text"
+                                data-row-idx="${idx}"
+                                data-key="${v.name}"
+                                value="${escHtml(row[v.name] || '')}"
+                                placeholder="Enter ${escHtml(v.name)}...">
                         </div>
                     `).join('')}
                     <div class="form-group">
                         <label>Output File Name</label>
-                        <input type="text" value="${row._fn || ''}" oninput="updateRow(${idx}, '_fn', this.value)" placeholder="e.g. Assignment_1">
+                        <input type="text"
+                            data-row-idx="${idx}"
+                            data-key="_fn"
+                            value="${escHtml(row._fn || '')}"
+                            placeholder="e.g. Assignment_1">
                     </div>
                 </div>
             </div>
@@ -280,9 +312,38 @@ function refreshTableBody() {
     lucide.createIcons();
 }
 
+// HTML-escape helper to prevent attribute injection
+function escHtml(str) {
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+}
+
 function updateRow(idx, key, val) { rowData[idx][key] = val; }
-function addRow() { rowData.push({}); refreshTableBody(); }
-function delRow(idx) { if (rowData.length > 1) { rowData.splice(idx, 1); refreshTableBody(); } }
+function addRow() {
+    // Sync any in-progress input values before adding row
+    syncInputsToData();
+    rowData.push({});
+    refreshTableBody();
+}
+function delRow(idx) {
+    syncInputsToData();
+    if (rowData.length > 1) { rowData.splice(idx, 1); refreshTableBody(); }
+}
+
+// Sync all visible inputs back to rowData before re-render
+function syncInputsToData() {
+    const inputs = document.querySelectorAll('#grid-container input[data-row-idx]');
+    inputs.forEach(input => {
+        const idx = parseInt(input.dataset.rowIdx);
+        const key = input.dataset.key;
+        if (!isNaN(idx) && key) {
+            rowData[idx][key] = input.value;
+        }
+    });
+}
 
 function proceedToData() {
     if (variables.length === 0) return alert("Select at least one text to edit first!");
@@ -480,20 +541,12 @@ async function runGeneration() {
         const zipBlob = await zip.generateAsync({ type: "blob", mimeType: "application/zip" });
         lastGeneratedZipBlob = zipBlob;
 
-        // Check for Web Share (File) Support - mainly for mobile
+        // Show share section on all devices
         const shareSection = document.getElementById('mobile-share-section');
         const shareBtn = document.getElementById('share-btn');
-        const isMobile = window.innerWidth <= 768;
-
-        if (isMobile && navigator.canShare && navigator.share) {
-            const testFile = new File([zipBlob], "test.zip", { type: zipBlob.type });
-            if (navigator.canShare({ files: [testFile] })) {
-                shareSection.style.display = 'block';
-                shareBtn.onclick = shareOnWhatsApp;
-            }
-        } else {
-            shareSection.style.display = 'none';
-        }
+        lastGeneratedFile = new File([zipBlob], "Assignments.zip", { type: "application/zip" });
+        shareSection.style.display = 'block';
+        shareBtn.onclick = shareFiles;
 
         function triggerDownload() {
             const url = URL.createObjectURL(zipBlob);
@@ -523,57 +576,64 @@ async function runGeneration() {
     }
 }
 
-async function shareOnWhatsApp() {
+async function shareFiles() {
     if (!lastGeneratedZipBlob) return;
 
-    // 1. Check for Secure Context (HTTPS requirement for Web Share API)
-    if (!window.isSecureContext && window.location.hostname !== 'localhost') {
-        alert("🔒 Security Requirement: Mobile file sharing requires a secure connection (HTTPS). \n\nPlease use an HTTPS URL or download the file manually.");
-        return;
-    }
+    // Try native Web Share API first (works on mobile + some desktop browsers)
+    if (navigator.share && lastGeneratedFile) {
+        // Check if file sharing is supported
+        const canShareFile = navigator.canShare && navigator.canShare({ files: [lastGeneratedFile] });
 
-    try {
-        // Prepare the file object immediately to maintain user activation context
-        const file = new File([lastGeneratedZipBlob], "Assignments.zip", {
-            type: "application/zip"
-        });
-
-        // 2. Verify browser capability for this specific file
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-            await navigator.share({
-                files: [file],
-                title: "DocMorph Assignments",
-                text: "Check out these customized documents!"
-            });
+        if (canShareFile) {
+            if (!window.isSecureContext && window.location.hostname !== 'localhost') {
+                alert("🔒 File sharing requires HTTPS. Please download the ZIP manually.");
+                return;
+            }
+            try {
+                await navigator.share({
+                    files: [lastGeneratedFile],
+                    title: 'DocMorph Assignments',
+                    text: 'Here are your customized documents!'
+                });
+                return; // Success — done
+            } catch (err) {
+                if (err.name === 'AbortError') return; // User cancelled
+                // Fall through to download fallback
+            }
         } else {
-            alert("Format Not Supported: This browser doesn't permit sharing ZIP files directly. Please use the 'Download' button.");
-        }
-    } catch (err) {
-        if (err.name === 'NotAllowedError') {
-            alert("Permission Denied: The browser blocked the share request. This usually happens if the site isn't using HTTPS or the gesture expired.");
-        } else if (err.name !== 'AbortError') {
-            console.error("Share failed", err);
-            alert("Sharing Error: " + err.message);
+            // Try sharing just title+text (no file) — asks user to share link
+            try {
+                await navigator.share({
+                    title: 'DocMorph Assignments',
+                    text: 'Here are your customized DocMorph assignments!'
+                });
+                return;
+            } catch (err) {
+                if (err.name === 'AbortError') return;
+            }
         }
     }
+
+    // Fallback: just download the ZIP
+    const url = URL.createObjectURL(lastGeneratedZipBlob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'Assignments_Bundle.zip';
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 500);
 }
 
 /**
  * Downloads all generated documents in a specific format.
- * Since direct DOCX->PDF in browser is limited, PDF results in an alert explanation 
- * unless a heavy library is added. For now, we handle DOCX bulk download.
+ * DOCX: direct download. PDF: uses server-side conversion if available,
+ * otherwise prints each doc via a hidden iframe (browser print -> Save as PDF).
  */
 function downloadAllFormats(format) {
     if (lastGeneratedDocs.length === 0) return alert("Generate files first!");
 
-    if (format === 'pdf') {
-        alert("PDF Conversion Note: Converting DOCX to PDF directly in the browser requires a heavy server-side engine or licensed SDK. \n\nFor now, please download as DOCX and 'Save as PDF' from Word, or use an online converter. \n\nDirect PDF download is coming soon!");
-        return;
-    }
-
     if (format === 'docx') {
-        // If there's only one doc, download it directly.
-        // If multiple, it's already in the ZIP, but we can trigger them or suggest ZIP.
         if (lastGeneratedDocs.length === 1) {
             const doc = lastGeneratedDocs[0];
             const blob = new Blob([doc.buffer], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
@@ -581,9 +641,126 @@ function downloadAllFormats(format) {
             const a = document.createElement('a');
             a.href = url;
             a.download = doc.name;
+            document.body.appendChild(a);
             a.click();
+            setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 500);
         } else {
-            alert("Multiple files found. The ZIP download is the best way to get all your DOCX files at once!");
+            // Download all as individual DOCX files
+            lastGeneratedDocs.forEach((doc, i) => {
+                setTimeout(() => {
+                    const blob = new Blob([doc.buffer], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = doc.name;
+                    document.body.appendChild(a);
+                    a.click();
+                    setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 500);
+                }, i * 400); // stagger downloads
+            });
         }
+        return;
     }
+
+    if (format === 'pdf') {
+        // Try server-side PDF conversion first
+        downloadAsPdf();
+    }
+}
+
+async function downloadAsPdf() {
+    if (lastGeneratedDocs.length === 0) return;
+
+    const btn = document.querySelector('button[onclick="downloadAllFormats(\'pdf\')"]');
+    const origText = btn ? btn.innerHTML : '';
+    if (btn) btn.innerHTML = '<div class="loader" style="display:block;width:16px;height:16px;"></div> Converting...';
+
+    try {
+        // Use server-side conversion
+        const formData = new FormData();
+        lastGeneratedDocs.forEach(doc => {
+            const blob = new Blob([doc.buffer], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+            formData.append('files', blob, doc.name);
+        });
+
+        const response = await fetch('/convert-pdf', {
+            method: 'POST',
+            body: formData,
+            signal: AbortSignal.timeout(30000)
+        });
+
+        if (!response.ok) throw new Error('Server conversion failed');
+
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = lastGeneratedDocs.length === 1
+            ? lastGeneratedDocs[0].name.replace('.docx', '.pdf')
+            : 'Assignments_PDF.zip';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 500);
+
+    } catch (err) {
+        console.warn('Server PDF conversion unavailable, using print fallback:', err.message);
+        // Fallback: open each DOCX in an iframe and trigger browser print
+        printDocsAsPdf();
+    } finally {
+        if (btn) btn.innerHTML = origText;
+        lucide.createIcons();
+    }
+}
+
+function printDocsAsPdf() {
+    // Opens each doc as a blob URL, then triggers print dialog
+    // User saves as PDF from the print dialog
+    lastGeneratedDocs.forEach((doc, i) => {
+        setTimeout(() => {
+            const blob = new Blob([doc.buffer], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+            const url = URL.createObjectURL(blob);
+
+            // Open in new tab for user to print/save as PDF
+            const win = window.open(url, '_blank');
+            if (!win) {
+                // Popup blocked — fallback to download
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = doc.name.replace('.docx', '.pdf');
+                document.body.appendChild(a);
+                a.click();
+                setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 500);
+            } else {
+                // Try auto-printing after a brief delay for the tab to load
+                setTimeout(() => {
+                    try { win.print(); } catch (e) { }
+                    setTimeout(() => URL.revokeObjectURL(url), 5000);
+                }, 1000);
+            }
+        }, i * 800);
+    });
+
+    if (lastGeneratedDocs.length > 0) {
+        showToast('📄 Opening docs for PDF — use Ctrl+P / File → Print → Save as PDF');
+    }
+}
+
+function showToast(msg, duration = 5000) {
+    let toast = document.getElementById('docmorph-toast');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'docmorph-toast';
+        toast.style.cssText = [
+            'position:fixed', 'bottom:90px', 'left:50%', 'transform:translateX(-50%)',
+            'background:#1f2937', 'border:1px solid var(--primary)', 'color:var(--text)',
+            'padding:14px 24px', 'border-radius:20px', 'z-index:9999',
+            'font-size:0.9rem', 'max-width:calc(100% - 40px)', 'text-align:center',
+            'box-shadow:0 10px 40px rgba(0,0,0,0.6)', 'white-space:pre-wrap'
+        ].join(';');
+        document.body.appendChild(toast);
+    }
+    toast.textContent = msg;
+    toast.style.display = 'block';
+    clearTimeout(toast._timeout);
+    toast._timeout = setTimeout(() => { toast.style.display = 'none'; }, duration);
 }

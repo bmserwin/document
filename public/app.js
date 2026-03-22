@@ -497,32 +497,18 @@ async function runGeneration() {
             const rawData = activeRows[i];
             const data = {};
             Object.keys(rawData).forEach(key => {
-                let val = typeof rawData[key] === 'string' ? rawData[key].trim() : rawData[key];
-
-                if (typeof val === 'string') {
-                    // CRITICAL: Replace ALL potential wrap points with non-breaking versions
-                    val = val.replace(/ /g, '\u00A0')  // Non-breaking space
-                        .replace(/-/g, '\u2011') // Non-breaking hyphen
-                        .replace(/:/g, ':\u00A0'); // Colon followed by non-breaking space
-                }
+                // Keep values as plain text — let Word handle word-wrap naturally
+                // within table cells. Non-breaking spaces previously used here
+                // caused long values (e.g. "Christopher Amsan") to overflow table
+                // cell boundaries and visually shift adjacent column text.
+                const val = typeof rawData[key] === 'string' ? rawData[key].trim() : (rawData[key] ?? '');
                 data[key] = val;
             });
 
             const p = new PizZip(masterTemplateBuffer);
-
-            // POST-PROCESSING: Remove right indents from paragraphs containing our variables
-            // This prevents the "right margin" from forcing a wrap too early
-            let docXml = p.file('word/document.xml').asText();
-            docXml = docXml.replace(/<w:p[ >][\s\S]*?<\/w:p>/g, (para) => {
-                const hasVariable = Object.keys(data).some(k => para.includes(`{${k}}`));
-                if (hasVariable) {
-                    // Strip any right indent that might be squeezing the text
-                    return para.replace(/<w:ind[^>]*w:right="[^"]*"[^>]*\/>/g, '')
-                        .replace(/w:right="[^"]*"/g, 'w:right="0"');
-                }
-                return para;
-            });
-            p.file('word/document.xml', docXml);
+            // Do NOT post-process w:right / w:ind on paragraphs.
+            // Removing those table-cell margins caused text ("Prof. Shalu") to
+            // jump visually into the adjacent "Submitted by:" column.
 
             const DocxTemplaterRef = window.docxtemplater || window.Docxtemplater;
             const doc = new DocxTemplaterRef(p, { paragraphLoop: true, linebreaks: true });
